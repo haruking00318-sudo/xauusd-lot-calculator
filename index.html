@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>XAUUSD ロット計算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+
+<div class="sheet">
+  <header>
+    <h1>XAUUSD ロット計算</h1>
+    <div class="conditions">
+      <span>1lot = 100oz</span>
+      <span>レバレッジ 1000倍</span>
+      <span>許容損益率 15%</span>
+      <span>値幅 8ドル</span>
+      <span>RR 1:1</span>
+      <span>最小ロット 0.01</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-label">入力</div>
+    <div class="input-grid">
+      <div class="field">
+        <label for="balance">口座残高（円）</label>
+        <input type="number" id="balance" inputmode="decimal" placeholder="0" value="1000000" min="0" step="any">
+      </div>
+      <div class="field">
+        <label for="equity">有効証拠金（円）</label>
+        <input type="number" id="equity" inputmode="decimal" placeholder="0" value="1000000" min="0" step="any">
+      </div>
+      <div class="field">
+        <label for="xauusd">XAUUSD価格</label>
+        <input type="number" id="xauusd" inputmode="decimal" placeholder="0" value="2650" min="0" step="any">
+      </div>
+      <div class="field">
+        <label for="usdjpy">USDJPY価格</label>
+        <input type="number" id="usdjpy" inputmode="decimal" placeholder="0" value="150" min="0" step="any">
+      </div>
+    </div>
+  </section>
+
+  <div class="hero" id="heroBox">
+    <div class="hero-label">最終適正ロット</div>
+    <div class="hero-value" id="finalLot">0.00</div>
+    <div class="hero-unit">lot（100oz / lot・0.01刻み切り下げ）</div>
+    <div class="hero-warn" id="heroWarn">許容損失額に対し最小ロット未満のため取引不可</div>
+  </div>
+
+  <div class="ledger">
+    <div class="row">
+      <span class="row-label">許容損失額</span>
+      <span class="row-value" id="riskAmount">¥0</span>
+    </div>
+    <div class="row">
+      <span class="row-label">理論適正ロット</span>
+      <span class="row-value" id="theoLot">0.00</span>
+    </div>
+    <div class="row">
+      <span class="row-label">必要証拠金</span>
+      <span class="row-value" id="marginUsd">$0.00<span class="row-sub" id="marginJpy">¥0</span></span>
+    </div>
+    <div class="row">
+      <span class="row-label">利確時損益</span>
+      <span class="row-value val-profit" id="profitAmount">¥0</span>
+    </div>
+    <div class="row">
+      <span class="row-label">損切時損益</span>
+      <span class="row-value val-loss" id="lossAmount">¥0</span>
+    </div>
+    <div class="row">
+      <span class="row-label">証拠金判定</span>
+      <span class="row-value"><span class="badge badge-na" id="marginJudge">-</span></span>
+    </div>
+  </div>
+
+  <footer>
+    許容損失額 = 口座残高 × 15%　／　理論適正ロット = 許容損失額 ÷ USDJPY ÷ 800　／　必要証拠金(USD) = XAUUSD × 100 × ロット ÷ 1000
+  </footer>
+</div>
+
+<script type="module" src="src/js/main.js"></script>
+
+</body>
+</html>
