@@ -29,7 +29,8 @@ xauusd-lot-calculator/
 │       ├── ui.js                  # DOM取得・画面描画
 │       ├── main.js                # エントリーポイント（各モジュールを接続）
 │       └── datasources/
-│           └── manualInput.js     # 手入力データソース
+│           ├── manualInput.js     # 手入力データソース
+│           └── mt5.js             # MT5連携APIポーリングデータソース
 ├── docs/
 │   └── future-mt5-integration.md  # 将来のMT5連携方針メモ
 ├── .gitignore
@@ -112,6 +113,19 @@ cd xauusd-lot-calculator
 損切時損益（円） = 利確時損益 × -1
 ```
 
+## MT5自動取得モード
+
+画面上部の「MT5自動取得」トグルをONにすると、[MT5連携APIサーバー](../server/README.md)（`GET /api/mt5/latest`）を2秒ごとにポーリングし、口座残高・有効証拠金・XAUUSD価格・USDJPY価格を自動反映して即時再計算します。手入力欄はこの間、編集不可（読み取り専用表示）になります。
+
+- **MT5接続中**：直近10秒以内にMT5からのデータを取得できている状態
+- **MT5未接続**：APIサーバー自体には到達できるが、10秒以上MT5からの更新がない状態
+- API自体に到達できない場合（サーバー未起動・CORS・ネットワーク不可など）は、自動的に手入力モードへ戻ります
+
+事前に [`server/`](../server/README.md) のAPIサーバーを起動し、[`XAUUSD_LotCalculator_Bridge.mq5`](../XAUUSD_LotCalculator_Bridge.mq5) をMT5で動かしておく必要があります。
+
+**注意**：GitHub Pages（https）上で公開した場合、閲覧者自身のPCの `localhost` APIへブラウザの制限上アクセスできないため、この自動取得モードは同一PC上でWebアプリとAPIサーバーを両方起動しているローカル環境でのみ動作確認できます。本番運用（別ホスティング先のAPIサーバーを使う場合）は `src/js/main.js` 内の `MT5_API_URL` を差し替えてください。
+
 ## 今後の予定
 
-- MT5からのBalance / Equity / XAUUSD / USDJPY自動取得（現時点では未実装。方針は [`docs/future-mt5-integration.md`](./docs/future-mt5-integration.md) を参照）
+- MT5連携APIサーバーの本番ホスティング先の選定・デプロイ
+- 自動取得モードのURLを設定画面から変更できるようにするかの検討
