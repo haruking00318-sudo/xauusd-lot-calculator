@@ -17,8 +17,6 @@
     <div class="conditions">
       <span>1lot = 100oz</span>
       <span>レバレッジ 1000倍</span>
-      <span>許容損益率 15%</span>
-      <span>値幅 8ドル</span>
       <span>RR 1:1</span>
       <span>最小ロット 0.01</span>
     </div>
@@ -26,10 +24,9 @@
 
   <section>
     <div class="mode-bar">
-      <label class="mode-toggle">
-        <input type="checkbox" id="mt5ModeToggle">
-        <span class="mode-toggle-track"></span>
-        <span class="mode-toggle-label">MT5自動取得</span>
+      <label class="mode-toggle" for="mt5ModeToggle">
+        <input type="checkbox" id="mt5ModeToggle" class="mode-toggle-checkbox">
+        <span class="mode-toggle-label">MT5自動取得 ON / OFF</span>
       </label>
       <span class="badge badge-na" id="mt5Status">手入力モード</span>
     </div>
@@ -50,6 +47,18 @@
       <div class="field">
         <label for="usdjpy">USDJPY価格</label>
         <input type="number" id="usdjpy" inputmode="decimal" placeholder="0" value="150" min="0" step="any">
+      </div>
+    </div>
+
+    <div class="section-label">リスク設定（MT5自動取得の対象外・常に手動）</div>
+    <div class="input-grid">
+      <div class="field">
+        <label for="riskRate">許容損益率（%）</label>
+        <input type="number" id="riskRate" inputmode="decimal" placeholder="15" value="15" min="0.01" max="99.99" step="any">
+      </div>
+      <div class="field">
+        <label for="rangeUsd">値幅（USD）</label>
+        <input type="number" id="rangeUsd" inputmode="decimal" placeholder="8" value="8" min="0.01" step="any">
       </div>
     </div>
   </section>
@@ -89,7 +98,7 @@
   </div>
 
   <footer>
-    許容損失額 = 口座残高 × 15%　／　理論適正ロット = 許容損失額 ÷ USDJPY ÷ 800　／　必要証拠金(USD) = XAUUSD × 100 × ロット ÷ 1000
+    許容損失額 = 口座残高 × 許容損益率　／　理論適正ロット = 許容損失額 ÷ USDJPY ÷ (値幅 × 100)　／　必要証拠金(USD) = XAUUSD × 100 × ロット ÷ 1000
   </footer>
 </div>
 

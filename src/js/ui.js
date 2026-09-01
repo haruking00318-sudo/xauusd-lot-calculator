@@ -11,6 +11,14 @@ export function getInputElements() {
   };
 }
 
+// 許容損益率・値幅：MT5自動取得の対象外。常に手動入力可能な欄。
+export function getRiskInputElements() {
+  return {
+    riskRate: document.getElementById('riskRate'),
+    rangeUsd: document.getElementById('rangeUsd'),
+  };
+}
+
 export function getModeElements() {
   return {
     toggle: document.getElementById('mt5ModeToggle'),
@@ -21,6 +29,7 @@ export function getModeElements() {
 export function getOutputElements() {
   return {
     heroBox: document.getElementById('heroBox'),
+    heroWarn: document.getElementById('heroWarn'),
     finalLot: document.getElementById('finalLot'),
     riskAmount: document.getElementById('riskAmount'),
     theoLot: document.getElementById('theoLot'),
@@ -38,8 +47,14 @@ const JUDGE_LABEL = {
   na: { text: '-', className: 'badge badge-na' },
 };
 
+const WARN_MESSAGE = {
+  invalidRiskSettings: '許容損益率（0より大きく100未満）と値幅（0より大きい値）を正しく入力してください',
+  belowMinLot: '許容損失額に対し最小ロット未満のため取引不可',
+};
+
 /**
- * 手入力欄の有効/無効を切り替える（MT5自動取得モード中は編集不可にする）
+ * 手入力欄（MT5自動取得対象の4項目）の有効/無効を切り替える
+ * MT5自動取得モード中は編集不可にする。許容損益率・値幅はこの対象に含めない。
  * @param {ReturnType<typeof getInputElements>} inputs
  * @param {boolean} disabled
  */
@@ -59,6 +74,15 @@ export function setInputValues(inputs, values) {
   inputs.equity.value = values.equity;
   inputs.xauusd.value = values.xauusd;
   inputs.usdjpy.value = values.usdjpy;
+}
+
+/**
+ * 入力欄に不正な値が入っていることを示す枠線表示を切り替える
+ * @param {HTMLInputElement} inputEl
+ * @param {boolean} isValid
+ */
+export function setFieldValidity(inputEl, isValid) {
+  inputEl.classList.toggle('invalid', !isValid);
 }
 
 const MT5_STATUS_LABEL = {
@@ -90,7 +114,14 @@ export function render(result, out) {
   out.theoLot.textContent = formatLot(result.theoreticalLot);
 
   out.finalLot.textContent = formatLot(result.finalLot);
-  out.heroBox.classList.toggle('insufficient', result.isBelowMinLot);
+
+  const showWarn = result.isRiskSettingsInvalid || result.isBelowMinLot;
+  out.heroBox.classList.toggle('insufficient', showWarn);
+  if (result.isRiskSettingsInvalid) {
+    out.heroWarn.textContent = WARN_MESSAGE.invalidRiskSettings;
+  } else if (result.isBelowMinLot) {
+    out.heroWarn.textContent = WARN_MESSAGE.belowMinLot;
+  }
 
   out.marginUsd.firstChild.textContent = formatUsd(result.requiredMarginUsd);
   out.marginJpy.textContent = formatJpy(result.requiredMarginJpy);

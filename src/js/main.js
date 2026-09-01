@@ -4,20 +4,26 @@
 // 動作モードは2つ：
 //   - 手入力モード（既定）：ユーザーが入力欄を編集するたびに再計算
 //   - MT5自動取得モード：2秒ごとにAPIをポーリングし、取得できた値で
-//     入力欄を更新した上で即時再計算する
+//     口座残高・有効証拠金・XAUUSD価格・USDJPY価格の入力欄を更新した上で
+//     即時再計算する
+//
+// 許容損益率・値幅はMT5自動取得の対象外。モードに関わらず常に手動で
+// 変更できる（getRiskInputElements() で取得する別枠の入力欄）。
 //
 // MT5自動取得モード中にAPIへ到達できなくなった場合（fetch失敗）は、
 // 自動的に手入力モードへ戻す。
 
-import { calculate } from './calculator.js';
+import { calculate, isRiskRateValid, isRangeUsdValid } from './calculator.js';
 import {
   getInputElements,
+  getRiskInputElements,
   getOutputElements,
   getModeElements,
   render,
   renderMt5Status,
   setInputsDisabled,
   setInputValues,
+  setFieldValidity,
 } from './ui.js';
 import { createManualInputSource } from './datasources/manualInput.js';
 import { createMt5Source } from './datasources/mt5.js';
@@ -27,8 +33,16 @@ import { createMt5Source } from './datasources/mt5.js';
 const MT5_API_URL = 'http://localhost:5000/api/mt5/latest';
 
 const inputElements = getInputElements();
+const riskInputElements = getRiskInputElements();
 const outputElements = getOutputElements();
 const modeElements = getModeElements();
+
+if (!modeElements.toggle || !modeElements.statusBadge) {
+  console.error(
+    '[main.js] MT5モード切替用のDOM要素が見つかりません。' +
+    'index.html に id="mt5ModeToggle" のチェックボックスと id="mt5Status" の要素があるか確認してください。'
+  );
+}
 
 const manualSource = createManualInputSource(inputElements);
 const mt5Source = createMt5Source({
@@ -37,27 +51,56 @@ const mt5Source = createMt5Source({
   staleTimeoutMs: 10000,
 });
 
-function recalculateFromManualInputs() {
-  const values = manualSource.getValues();
-  render(calculate(values), outputElements);
+// 現在アクティブなデータソース（口座残高・有効証拠金・XAUUSD・USDJPYの取得元）
+function getActiveSource() {
+  return modeElements.toggle && modeElements.toggle.checked ? mt5Source : manualSource;
 }
 
-function recalculateFromMt5() {
-  const values = mt5Source.getValues();
-  setInputValues(inputElements, values);
-  render(calculate(values), outputElements);
+// 許容損益率・値幅を読み取る（常に手動入力欄から）
+function getRiskSettings() {
+  return {
+    riskRatePercent: parseFloat(riskInputElements.riskRate.value),
+    rangeUsd: parseFloat(riskInputElements.rangeUsd.value),
+  };
 }
 
-// 手入力モード：入力のたびに再計算
-manualSource.onChange(recalculateFromManualInputs);
+function recalcAndRender() {
+  const base = getActiveSource().getValues();
+  const { riskRatePercent, rangeUsd } = getRiskSettings();
+
+  const result = calculate({
+    balance: base.balance,
+    equity: base.equity,
+    xauusd: base.xauusd,
+    usdjpy: base.usdjpy,
+    riskRatePercent,
+    rangeUsd,
+  });
+
+  render(result, outputElements);
+
+  // 個別の欄にも不正値の枠線を表示する
+  setFieldValidity(riskInputElements.riskRate, isRiskRateValid(riskRatePercent));
+  setFieldValidity(riskInputElements.rangeUsd, isRangeUsdValid(rangeUsd));
+}
+
+// 手入力モード：balance/equity/xauusd/usdjpy いずれかの変更で再計算
+manualSource.onChange(recalcAndRender);
 
 // MT5モード：新しい値を取得できたら入力欄へ反映して再計算
-mt5Source.onChange(recalculateFromMt5);
+mt5Source.onChange(() => {
+  setInputValues(inputElements, mt5Source.getValues());
+  recalcAndRender();
+});
+
+// 許容損益率・値幅：モードに関わらず、変更したら即再計算
+riskInputElements.riskRate.addEventListener('input', recalcAndRender);
+riskInputElements.rangeUsd.addEventListener('input', recalcAndRender);
 
 // MT5接続状態の変化をバッジへ反映。'error'（APIに到達できない）の場合は
 // 自動的に手入力モードへ戻す。
 mt5Source.onStatusChange((status) => {
-  if (!modeElements.toggle.checked) return; // 手入力モード中は無視
+  if (!modeElements.toggle || !modeElements.toggle.checked) return; // 手入力モード中は無視
 
   renderMt5Status(modeElements, status);
 
@@ -68,10 +111,10 @@ mt5Source.onStatusChange((status) => {
 
 function switchToManualMode() {
   mt5Source.stop();
-  modeElements.toggle.checked = false;
+  if (modeElements.toggle) modeElements.toggle.checked = false;
   setInputsDisabled(inputElements, false);
   renderMt5Status(modeElements, 'manual');
-  recalculateFromManualInputs();
+  recalcAndRender();
 }
 
 function switchToMt5Mode() {
@@ -80,13 +123,16 @@ function switchToMt5Mode() {
   mt5Source.start();
 }
 
-modeElements.toggle.addEventListener('change', () => {
-  if (modeElements.toggle.checked) {
-    switchToMt5Mode();
-  } else {
-    switchToManualMode();
-  }
-});
+// MT5自動取得トグル：ON時はmt5.js、OFF時はmanualInput.jsを使用する
+if (modeElements.toggle) {
+  modeElements.toggle.addEventListener('change', () => {
+    if (modeElements.toggle.checked) {
+      switchToMt5Mode();
+    } else {
+      switchToManualMode();
+    }
+  });
+}
 
 // 初期状態は手入力モード
-recalculateFromManualInputs();
+recalcAndRender();

@@ -74,6 +74,7 @@ section{margin-bottom:28px;}
   display:flex;
   align-items:center;
   justify-content:space-between;
+  flex-wrap:wrap;
   gap:12px;
   margin-bottom:16px;
 }
@@ -81,59 +82,34 @@ section{margin-bottom:28px;}
 .mode-toggle{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
   cursor:pointer;
   user-select:none;
+  -webkit-user-select:none;
+  /* パディング＋負のマージンでタップ領域だけを広げ、見た目のレイアウトは変えない */
+  padding:8px 4px;
+  margin:-8px -4px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  pointer-events:auto;
 }
 
-.mode-toggle input{
-  position:absolute;
-  opacity:0;
-  width:0;
-  height:0;
-}
-
-.mode-toggle-track{
-  position:relative;
-  width:34px;
-  height:19px;
-  border-radius:999px;
-  background:var(--bg-input);
-  border:1px solid var(--border);
-  transition:background 0.15s ease, border-color 0.15s ease;
+.mode-toggle-checkbox{
+  width:20px;
+  height:20px;
+  min-width:20px;
+  min-height:20px;
+  accent-color:var(--gold);
+  cursor:pointer;
   flex-shrink:0;
-}
-
-.mode-toggle-track::after{
-  content:"";
-  position:absolute;
-  top:2px;
-  left:2px;
-  width:13px;
-  height:13px;
-  border-radius:50%;
-  background:var(--text-tertiary);
-  transition:transform 0.15s ease, background 0.15s ease;
-}
-
-.mode-toggle input:checked + .mode-toggle-track{
-  background:rgba(201,169,97,0.18);
-  border-color:var(--gold);
-}
-
-.mode-toggle input:checked + .mode-toggle-track::after{
-  transform:translateX(15px);
-  background:var(--gold-bright);
-}
-
-.mode-toggle input:focus-visible + .mode-toggle-track{
-  outline:2px solid var(--gold);
-  outline-offset:2px;
+  touch-action:manipulation;
+  pointer-events:auto;
 }
 
 .mode-toggle-label{
   font-size:0.78rem;
   color:var(--text-secondary);
+  pointer-events:none; /* タップは常にラベル全体（.mode-toggle）で受ける */
 }
 
 .input-grid{
@@ -191,6 +167,14 @@ section{margin-bottom:28px;}
   background:var(--bg-panel);
   border-color:var(--border-soft);
   cursor:not-allowed;
+}
+
+.field input.invalid{
+  border-color:var(--danger);
+}
+
+.field input.invalid:focus{
+  border-color:var(--danger);
 }
 
 /* hero */
@@ -281,6 +265,7 @@ section{margin-bottom:28px;}
   font-weight:600;
   padding:4px 10px;
   border-radius:5px;
+  pointer-events:none; /* ステータス表示のみ。タップを奪わないことを保証 */
 }
 .badge-ok{background:var(--success-bg); color:var(--success);}
 .badge-ng{background:var(--danger-bg); color:var(--danger);}
