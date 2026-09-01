@@ -11,6 +11,13 @@ export function getInputElements() {
   };
 }
 
+export function getModeElements() {
+  return {
+    toggle: document.getElementById('mt5ModeToggle'),
+    statusBadge: document.getElementById('mt5Status'),
+  };
+}
+
 export function getOutputElements() {
   return {
     heroBox: document.getElementById('heroBox'),
@@ -30,6 +37,48 @@ const JUDGE_LABEL = {
   ng: { text: '証拠金不足', className: 'badge badge-ng' },
   na: { text: '-', className: 'badge badge-na' },
 };
+
+/**
+ * 手入力欄の有効/無効を切り替える（MT5自動取得モード中は編集不可にする）
+ * @param {ReturnType<typeof getInputElements>} inputs
+ * @param {boolean} disabled
+ */
+export function setInputsDisabled(inputs, disabled) {
+  Object.values(inputs).forEach((el) => {
+    el.disabled = disabled;
+  });
+}
+
+/**
+ * 手入力欄へ値を反映する（MT5から取得した値を表示するため）
+ * @param {ReturnType<typeof getInputElements>} inputs
+ * @param {{balance:number, equity:number, xauusd:number, usdjpy:number}} values
+ */
+export function setInputValues(inputs, values) {
+  inputs.balance.value = values.balance;
+  inputs.equity.value = values.equity;
+  inputs.xauusd.value = values.xauusd;
+  inputs.usdjpy.value = values.usdjpy;
+}
+
+const MT5_STATUS_LABEL = {
+  connected: { text: 'MT5接続中', className: 'badge badge-ok' },
+  stale: { text: 'MT5未接続', className: 'badge badge-ng' },
+  disconnected: { text: 'MT5未接続', className: 'badge badge-ng' },
+  error: { text: 'MT5未接続', className: 'badge badge-ng' },
+  manual: { text: '手入力モード', className: 'badge badge-na' },
+};
+
+/**
+ * MT5接続状態バッジを更新する
+ * @param {ReturnType<typeof getModeElements>} modeEl
+ * @param {'connected'|'stale'|'disconnected'|'error'|'manual'} status
+ */
+export function renderMt5Status(modeEl, status) {
+  const label = MT5_STATUS_LABEL[status] || MT5_STATUS_LABEL.manual;
+  modeEl.statusBadge.textContent = label.text;
+  modeEl.statusBadge.className = label.className;
+}
 
 /**
  * 計算結果をDOMへ反映する
