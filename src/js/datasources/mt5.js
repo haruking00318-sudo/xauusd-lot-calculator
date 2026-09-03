@@ -1,34 +1,44 @@
-// MT5データソース
+// MT5データソース（複数ユーザー対応版）
 //
 // manualInput.js と同じ interface（getValues() / onChange()）を持つ。
 // 加えて、接続状態をmain.js側へ通知するための onStatusChange() を持つ。
 //
+// APIキーはユーザーがWebアプリの「MT5連携キー」欄に入力した値を、
+// getApiKey() コールバック経由でポーリングのたびに取得し、
+// X-API-Key ヘッダーに載せて送信する（URLパラメータには含めない）。
+//
 // 動作：
 //  - pollIntervalMs（既定2秒）ごとに GET {url} をポーリング
+//  - APIキーが空の場合は 'no-key' を通知し、通信自体を行わない
 //  - 取得に成功し status:"ok" かつ data がある場合、値をキャッシュして 'connected' を通知
 //  - 直近の成功取得から staleTimeoutMs（既定10秒）以上経過している場合は 'stale' を通知
 //    （APIサーバー自体には到達できているが、MT5 EAからの更新が来ていない状態）
+//  - APIキーが無効な場合（サーバーが401を返した場合）は 'unauthorized' を通知する
 //  - fetch自体が失敗した場合（サーバーに到達できない等）は 'error' を通知する
-//    → main.js側でこれを受けて手入力モードへ自動的に戻す
+//  - 'unauthorized' / 'error' は main.js側で受け取り、手入力モードへ自動的に戻す
 //
-// 【重要】GitHub Pages（https）上からは、閲覧者自身のlocalhost APIへは
-// ブラウザのMixed Content制限等により到達できない場合がある。
-// そのため、まずはローカル環境（同一PC上でWebアプリとAPIサーバーを両方起動）
-// での動作確認を前提とした実装にしている。
+// 【重要】外部公開APIを使う構成のため、スマートフォン（iPhone / Android）の
+// ブラウザからも同一のURLへ直接アクセスできる。
 
 export function createMt5Source(options = {}) {
   const {
-    url = 'http://localhost:5000/api/mt5/latest',
+    url,
     pollIntervalMs = 2000,
     staleTimeoutMs = 10000,
+    getApiKey = () => '',
   } = options;
+
+  if (!url) {
+    throw new Error('createMt5Source: url は必須です');
+  }
 
   let latestValues = null;   // 直近取得できた { balance, equity, xauusd, usdjpy }
   let lastSuccessAt = null;  // 直近「データあり」で取得できた時刻（Date.now()）
   let timerId = null;
   let changeCallback = null;  // 新しい値を取得できたときに呼ぶ（再計算トリガー）
   let statusCallback = null;  // 接続状態が変わったときに呼ぶ
-  let currentStatus = 'disconnected'; // 'connected' | 'stale' | 'disconnected' | 'error'
+  // 'connected' | 'stale' | 'disconnected' | 'error' | 'unauthorized' | 'no-key'
+  let currentStatus = 'disconnected';
 
   function setStatus(nextStatus) {
     if (nextStatus !== currentStatus) {
@@ -38,7 +48,10 @@ export function createMt5Source(options = {}) {
   }
 
   function checkStale() {
-    if (currentStatus === 'error') return; // エラー状態はfetch成功まで変えない
+    // より具体的な状態（キー未入力・エラー・認証エラー）はfetch成功まで変えない
+    if (currentStatus === 'error' || currentStatus === 'unauthorized' || currentStatus === 'no-key') {
+      return;
+    }
     if (lastSuccessAt === null) {
       setStatus('disconnected');
       return;
@@ -48,13 +61,33 @@ export function createMt5Source(options = {}) {
   }
 
   async function poll() {
+    const apiKey = (getApiKey() || '').trim();
+
+    if (!apiKey) {
+      // APIキー未指定時は通信自体を行わない
+      setStatus('no-key');
+      return;
+    }
+
     let response;
     try {
-      response = await fetch(url, { cache: 'no-store' });
+      response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'X-API-Key': apiKey,
+        },
+      });
     } catch (err) {
       // サーバーに到達できない（未起動・CORSブロック・ネットワーク不可など）
       console.error('[MT5] APIへの接続に失敗しました:', err);
       setStatus('error');
+      return;
+    }
+
+    if (response.status === 401) {
+      console.error('[MT5] APIキーが無効です（401）。');
+      setStatus('unauthorized');
       return;
     }
 

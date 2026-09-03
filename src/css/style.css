@@ -118,6 +118,10 @@ section{margin-bottom:28px;}
   gap:12px;
 }
 
+.mt5-key-field{
+  margin-bottom:20px;
+}
+
 .field{
   display:flex;
   flex-direction:column;

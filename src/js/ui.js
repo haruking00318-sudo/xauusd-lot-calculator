@@ -23,6 +23,7 @@ export function getModeElements() {
   return {
     toggle: document.getElementById('mt5ModeToggle'),
     statusBadge: document.getElementById('mt5Status'),
+    apiKeyInput: document.getElementById('mt5ApiKey'),
   };
 }
 
@@ -90,13 +91,15 @@ const MT5_STATUS_LABEL = {
   stale: { text: 'MT5未接続', className: 'badge badge-ng' },
   disconnected: { text: 'MT5未接続', className: 'badge badge-ng' },
   error: { text: 'MT5未接続', className: 'badge badge-ng' },
+  unauthorized: { text: 'APIキーが無効です', className: 'badge badge-ng' },
+  'no-key': { text: 'MT5連携キーを入力してください', className: 'badge badge-ng' },
   manual: { text: '手入力モード', className: 'badge badge-na' },
 };
 
 /**
  * MT5接続状態バッジを更新する
  * @param {ReturnType<typeof getModeElements>} modeEl
- * @param {'connected'|'stale'|'disconnected'|'error'|'manual'} status
+ * @param {'connected'|'stale'|'disconnected'|'error'|'unauthorized'|'no-key'|'manual'} status
  */
 export function renderMt5Status(modeEl, status) {
   const label = MT5_STATUS_LABEL[status] || MT5_STATUS_LABEL.manual;
